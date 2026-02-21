@@ -16,7 +16,13 @@ find_package(rosidl_default_generators REQUIRED)
 
 # Generate messages
 rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/DiscoverDevices.msg"
   "msg/DummyCommand.msg"
+  "msg/EnterConfigurationMode.msg"
+  "msg/FlashIndicatorLed.msg"
+  "msg/GetHardwareType.msg"
+  "msg/PingModule.msg"
+  "msg/SetDeviceNodeId.msg"
   DEPENDENCIES std_msgs mcan_basic_module_msgs
 )
 

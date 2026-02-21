@@ -30,6 +30,104 @@ struct Hardware_t {
 namespace configs {
 
 /**
+ * @brief Discover Devices
+ * @details This will trigger all devices on the bus to respond with their uniq ID that defines the hardware
+ * @permission r
+ */
+struct DiscoverDevices {
+    using Type = uint64_t;
+    static constexpr const char* k_name = "discover_devices";
+    static constexpr const char* k_group = "configs";
+    static constexpr std::uint32_t k_base_address = 0x001;
+    static constexpr bool k_allow_read = true;
+    static constexpr bool k_allow_write = false;
+
+    uint64_t value;
+};
+
+/**
+ * @brief Set Device Node ID
+ * @details Set the device node ID of the module
+ * @permission w
+ */
+struct SetDeviceNodeId {
+    using Type = uint8_t;
+    static constexpr const char* k_name = "set_device_node_id";
+    static constexpr const char* k_group = "configs";
+    static constexpr std::uint32_t k_base_address = 0x002;
+    static constexpr bool k_allow_read = false;
+    static constexpr bool k_allow_write = true;
+
+    uint8_t value;
+};
+
+/**
+ * @brief Enter Configuration Mode
+ * @details Command to enter configuration mode on all connected modules
+ * @default 0
+ * @permission w
+ */
+struct EnterConfigurationMode {
+    using Type = uint8_t;
+    static constexpr const char* k_name = "enter_configuration_mode";
+    static constexpr const char* k_group = "configs";
+    static constexpr std::uint32_t k_base_address = 0x003;
+    static constexpr bool k_allow_read = false;
+    static constexpr bool k_allow_write = true;
+
+    uint8_t value = {0};
+};
+
+/**
+ * @details Device Identifier message
+ * @permission r
+ */
+struct GetHardwareType {
+    using Type = HardwareType_t;
+    static constexpr const char* k_name = "get_hardware_type";
+    static constexpr const char* k_group = "configs";
+    static constexpr std::uint32_t k_base_address = 0x004;
+    static constexpr bool k_allow_read = true;
+    static constexpr bool k_allow_write = false;
+
+    HardwareType_t value;
+};
+
+/**
+ * @brief Ping Module
+ * @details Ping the module to check if it's alive, the counter will increment on each ping
+ * @default 0
+ * @permission w
+ */
+struct PingModule {
+    using Type = uint8_t;
+    static constexpr const char* k_name = "ping_module";
+    static constexpr const char* k_group = "configs";
+    static constexpr std::uint32_t k_base_address = 0x005;
+    static constexpr bool k_allow_read = false;
+    static constexpr bool k_allow_write = true;
+
+    uint8_t value = {0};
+};
+
+/**
+ * @brief Flash Indicator LED
+ * @details Command to flash the indicator LED on the module, useful for locating specific hardware
+ * @default 0
+ * @permission w
+ */
+struct FlashIndicatorLed {
+    using Type = bool;
+    static constexpr const char* k_name = "flash_indicator_led";
+    static constexpr const char* k_group = "configs";
+    static constexpr std::uint32_t k_base_address = 0x006;
+    static constexpr bool k_allow_read = false;
+    static constexpr bool k_allow_write = true;
+
+    bool value = {0};
+};
+
+/**
  * @brief Dummy Command
  * @details This is a dummy command for testing purposes
  * @default 0
