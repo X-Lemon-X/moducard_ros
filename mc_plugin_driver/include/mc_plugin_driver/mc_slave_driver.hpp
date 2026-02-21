@@ -101,8 +101,8 @@ public:
 protected:
   const std::shared_ptr<CanBase> _can_interface_primary;
   const std::shared_ptr<CanBase> _can_interface_secondary;
+  const uint64_t _unique_driver_id;
   ModuleParams _module_params;
-  uint64_t _unique_driver_id;
 
   DeviceStatus_t _device_status          = DeviceStatus_t::UNKNOWN;
   DeviceIdentifier_t _device_identifier  = {};
