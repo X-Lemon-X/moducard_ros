@@ -1,0 +1,3 @@
+[submodule "mc_plugin_base/mc_drivers_common"]
+	path = mc_plugin_base/mc_drivers_common
+	url = git@github.com:X-Lemon-X/mc_drivers_common.git
