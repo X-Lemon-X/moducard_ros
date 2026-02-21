@@ -13,16 +13,16 @@
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "mc_plugin_driver/timing.hpp"
-#include "base_module_dummy_msgs/base_module_dummy_types.hpp"
-#include "base_module_dummy_msgs/base_module_dummy.hpp"
+#include "mcan_base_module_dummy_msgs/mcan_base_module_dummy.hpp"
+#include "mcan_base_module_dummy_msgs/mcan_base_module_dummy_types.hpp"
 
 #define HARDWARE_PUBLIC __attribute__((visibility("default")))
 
 namespace mcan {
 
 
-using namespace basic_module;
-using namespace base_module_dummy;
+using namespace mcan_basic_module;
+using namespace mcan_base_module_dummy;
 
 
 enum class McSlavePluginDriverState : uint8_t { UNINITIALIZED, INITIALIZED, ACTIVE, ERROR };
@@ -38,8 +38,8 @@ public:
                           uint64_t unique_driver_id)
 
   : Node(node, node_name), _can_interface_primary(std::move(can_interface_primary)),
-    _can_interface_secondary(std::move(can_interface_secondary)), _module_params(module_params),
-    _unique_driver_id(unique_driver_id) {
+    _can_interface_secondary(std::move(can_interface_secondary)),_unique_driver_id(unique_driver_id), _module_params(module_params)
+     {
   }
 
   virtual ~McSlavePluginDriverBase() = default;

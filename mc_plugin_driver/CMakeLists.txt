@@ -19,7 +19,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   rclcpp
   std_msgs
   mc_plugin_base
-  base_module_dummy_msgs
+  mcan_base_module_dummy_msgs
   mc_can_driver
   pluginlib
   yaml-cpp

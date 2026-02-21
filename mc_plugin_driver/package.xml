@@ -12,10 +12,8 @@
   <depend>std_msgs</depend>
   <depend>pluginlib</depend>
   <depend>mc_can_driver</depend>
-
-
   <depend>mc_plugin_base</depend>
-  <depend>base_module_dummy_msgs</depend>
+  <depend>mcan_base_module_dummy_msgs</depend>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
