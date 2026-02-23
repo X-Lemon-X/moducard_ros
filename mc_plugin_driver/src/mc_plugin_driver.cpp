@@ -69,8 +69,7 @@ McPLuginDriver::McPLuginDriver()
   _can_interface_secondary = maybe_can_secondary.valueOrDie();
   RCLCPP_INFO(this->get_logger(), "CAN interfaces initialized successfully");
 
-  _run_main_loop.store(true);
-  _main_loop_thread = std::thread(&McPLuginDriver::main_loop, this);
+  switch_state(McPLuginDriverStates::UNINITIALIZED);
 
   RCLCPP_INFO(this->get_logger(), "McPLuginDriver Initialized");
 }
@@ -84,17 +83,36 @@ McPLuginDriver::~McPLuginDriver() {
   RCLCPP_INFO(this->get_logger(), "McPLuginDriver shutdown complete");
 }
 
+void McPLuginDriver::stop_main_loop() {
+  _run_main_loop.store(false);
+  if(_main_loop_thread.joinable()) {
+    _main_loop_thread.join();
+  }
+}
+
+void McPLuginDriver::start_main_loop() {
+  if(!_run_main_loop.load()) {
+    _run_main_loop.store(true);
+    _main_loop_thread = std::thread(&McPLuginDriver::main_loop, this);
+  }
+}
+
 
 void McPLuginDriver::main_loop() {
+  double update_rate = _param_loader.get_max_update_rate() * 5.0f;
+  std::chrono::nanoseconds update_period_ns(static_cast<int64_t>(1e9 / update_rate));
+  RCLCPP_INFO(this->get_logger(), "Entering main loop with update rate: %f Hz, %i [ns]", update_rate, update_period_ns.count());
+
   while(_run_main_loop.load()) {
     if(_func_main_loop) {
       std::lock_guard<std::mutex> lock(state_mutex);
       _func_main_loop();
     }
+    std::this_thread::sleep_for(update_period_ns);
   }
 }
 
-Status McPLuginDriver::switch_state(McSlavePluginDriverState next_state) {
+Status McPLuginDriver::switch_state(McPLuginDriverStates next_state) {
   std::lock_guard<std::mutex> lock(state_mutex);
 
   if(state == next_state) {
@@ -102,6 +120,7 @@ Status McPLuginDriver::switch_state(McSlavePluginDriverState next_state) {
     return Status::OK();
   }
 
+  stop_main_loop();
 
   // Call exit function for current state
   if(_func_exit_prev_state) {
@@ -116,13 +135,57 @@ Status McPLuginDriver::switch_state(McSlavePluginDriverState next_state) {
 
 
   switch(next_state) {
-  case McSlavePluginDriverState::UNINITIALIZED:
+  case McPLuginDriverStates::NONE:
     _func_main_loop        = nullptr;
     _func_exit_prev_state  = nullptr;
     _func_enter_next_state = nullptr;
     break;
-  case McSlavePluginDriverState::INITIALIZED: break;
-  default: return Status::Invalid("Unknown state " + std::to_string(static_cast<int>(next_state)));
+  case McPLuginDriverStates::UNINITIALIZED:
+    _func_main_loop        = nullptr;
+    _func_exit_prev_state  = nullptr;
+    _func_enter_next_state = nullptr;
+    break;
+  case McPLuginDriverStates::ENTER_CONFIG_MODE:
+    _func_main_loop        = nullptr ; //std::bind(&McPLuginDriver::enter_configuration_mode, this);
+    _func_exit_prev_state  = nullptr;
+    _func_enter_next_state = std::bind(&McPLuginDriver::enter_configuration_mode, this);
+    break;
+  case McPLuginDriverStates::DISCOVER_DEVICES:
+    _func_main_loop        = nullptr; 
+    _func_exit_prev_state  = nullptr;
+    _func_enter_next_state = std::bind(&McPLuginDriver::discover_devices, this);
+    break;
+  case McPLuginDriverStates::CHECK_COMPATIBILITY:
+    _func_main_loop        = nullptr;
+    _func_exit_prev_state  = nullptr;
+    _func_enter_next_state = std::bind(&McPLuginDriver::check_compatibility, this);
+    break;
+  case McPLuginDriverStates::LOAD_PLUGINS:
+    _func_main_loop        = nullptr;
+    _func_exit_prev_state  = nullptr;
+    _func_enter_next_state = std::bind(&McPLuginDriver::load_plugins_state, this);
+    break;
+  case McPLuginDriverStates::INIT_MODULES:
+    _func_main_loop        = nullptr;
+    _func_exit_prev_state  = nullptr;
+    _func_enter_next_state = std::bind(&McPLuginDriver::init_modules, this);
+    break;
+  case McPLuginDriverStates::CONTROL_LOOP:
+    _func_main_loop        = std::bind(&McPLuginDriver::control_loop, this);
+    _func_exit_prev_state  = nullptr;
+    _func_enter_next_state = nullptr;
+    break;
+  case McPLuginDriverStates::ERROR_MODE:
+    _func_main_loop        = std::bind(&McPLuginDriver::error_mode, this);
+    _func_exit_prev_state  = nullptr;
+    _func_enter_next_state = nullptr;
+    break;
+
+  
+
+  default:
+    RCLCPP_ERROR(this->get_logger(), "Unknown state %d", static_cast<int>(next_state));
+    return Status::Invalid("Unknown state " + std::to_string(static_cast<int>(next_state)));
   }
 
 
@@ -135,6 +198,10 @@ Status McPLuginDriver::switch_state(McSlavePluginDriverState next_state) {
       return Status::Invalid("Failed to enter state " + std::to_string(static_cast<int>(next_state)) + ": " +
                              enter_status.to_string());
     }
+  }
+
+  if(_func_main_loop) {
+    start_main_loop();
   }
   return Status::OK();
 }
@@ -191,4 +258,41 @@ Result<std::shared_ptr<McSlavePluginDriverBase>> McPLuginDriver::load_create_sla
   }
   return Result<std::shared_ptr<McSlavePluginDriverBase>>::OK(
   std::shared_ptr<McSlavePluginDriverBase>(slave_driver_ptr.valueOrDie()));
+}
+
+
+Status McPLuginDriver::enter_configuration_mode() {
+  RCLCPP_INFO(this->get_logger(), "Entering configuration mode");
+  return Status::OK();
+}
+
+Status McPLuginDriver::discover_devices() {
+  RCLCPP_INFO(this->get_logger(), "Discovering devices");
+  return Status::OK();
+}
+
+Status McPLuginDriver::check_compatibility() {
+  RCLCPP_INFO(this->get_logger(), "Checking compatibility");
+  return Status::OK();
+}
+
+Status McPLuginDriver::load_plugins_state() {
+  RCLCPP_INFO(this->get_logger(), "Loading plugins and creating slave drivers");
+  
+  return Status::OK();
+}
+
+Status McPLuginDriver::init_modules() {
+  RCLCPP_INFO(this->get_logger(), "Initializing modules");
+  return Status::OK();
+}
+
+Status McPLuginDriver::control_loop() {
+  RCLCPP_INFO(this->get_logger(), "Entering control loop");
+  return Status::OK();
+}
+
+Status McPLuginDriver::error_mode() {
+  RCLCPP_INFO(this->get_logger(), "Entering error mode");
+   return Status::OK();
 }
