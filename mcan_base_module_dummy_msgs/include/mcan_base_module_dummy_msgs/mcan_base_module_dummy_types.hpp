@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <string>
 #include <cstddef>
-#include "mc_plugin_base/super_types.hpp"
+#include "mc_plugin_base/mc_firmware/super_types.hpp"
 
 #include <mcan_basic_module_msgs/mcan_basic_module_types.hpp>
 

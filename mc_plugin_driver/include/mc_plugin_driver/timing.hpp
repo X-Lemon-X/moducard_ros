@@ -29,41 +29,49 @@ SOFTWARE.
 
 namespace mcan {
 
-
-class TimingObject {
-public:
+class TimingObject
+{
+ public:
   TimingObject(float frequency_hz)
-  : _interval(static_cast<int64_t>(1000'000.0 / frequency_hz)), _last_trigger(std::chrono::steady_clock::now()) {
+    : _interval(static_cast<int64_t>(1000'000.0 / frequency_hz))
+    , _last_trigger(std::chrono::steady_clock::now())
+  {
   }
-  TimingObject() : _interval(0), _last_trigger(std::chrono::steady_clock::now()) {
+  TimingObject()
+    : _interval(0)
+    , _last_trigger(std::chrono::steady_clock::now())
+  {
   }
-  TimingObject(TimingObject &&t) : _interval(t._interval), _last_trigger(t._last_trigger) {
+  TimingObject(TimingObject&& t)
+    : _interval(t._interval)
+    , _last_trigger(t._last_trigger)
+  {
   }
-
 
   // Get elapsed time since last trigger
-  double elapsed_s() const {
-    return std::chrono::duration<double>(std::chrono::steady_clock::now() - _last_trigger).count();
+  double elapsed_s() const
+  {
+    return std::chrono::duration<double>(std::chrono::steady_clock::now() - _last_trigger)
+      .count();
   }
 
-  void reset() {
-    _last_trigger = std::chrono::steady_clock::now();
-  }
+  void reset() { _last_trigger = std::chrono::steady_clock::now(); }
 
   std::chrono::nanoseconds _interval;
   std::chrono::steady_clock::time_point _last_trigger;
 };
 
-
-class FrequencyTimer {
-public:
+class FrequencyTimer
+{
+ public:
   FrequencyTimer(){};
 
   // Check if it's time to trigger, auto-resets
-  static bool should_trigger_and_reset(TimingObject &timer) {
-    auto now     = std::chrono::steady_clock::now();
+  static bool should_trigger_and_reset(TimingObject& timer)
+  {
+    auto now = std::chrono::steady_clock::now();
     auto elapsed = now - timer._last_trigger;
-    if(elapsed >= timer._interval) {
+    if (elapsed >= timer._interval) {
       timer._last_trigger = now;
       return true;
     }
@@ -71,8 +79,9 @@ public:
   }
 
   // Check if it's time to trigger, does not reset
-  static bool should_trigger(TimingObject &timer) {
-    auto now     = std::chrono::steady_clock::now();
+  static bool should_trigger(TimingObject& timer)
+  {
+    auto now = std::chrono::steady_clock::now();
     auto elapsed = now - timer._last_trigger;
     return elapsed >= timer._interval;
   }

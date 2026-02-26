@@ -7,7 +7,7 @@
 #include <string>
 #include <cstddef>
 #include <tuple>
-#include "mc_plugin_base/super_types.hpp"
+#include "mc_plugin_base/mc_firmware/super_types.hpp"
 
 #include <mcan_base_module_dummy_msgs/mcan_base_module_dummy_types.hpp>
 
