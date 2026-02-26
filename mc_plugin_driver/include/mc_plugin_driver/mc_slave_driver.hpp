@@ -177,7 +177,9 @@ class McSlavePluginDriver : public McSlavePluginDriverBase
                 this->_interface.*(args)))>;
             auto msg_buffer = std::make_shared<CanMultiPackageFrame<MsgT>>();
             auto publisher = this->create_publisher<RosMsgT>(
-              "/get/" + std::string(MsgT::k_group) + "/" + std::string(MsgT::k_name), 10);
+              _module_params.module_ros_name + "/get/" + std::string(MsgT::k_group) +
+                "/" + std::string(MsgT::k_name),
+              10);
             uint32_t can_id = mcan_connect_msg_id_with_node_id(
               (this->_interface.*(args)).k_base_address, _module_params.node_id);
 
@@ -214,7 +216,8 @@ class McSlavePluginDriver : public McSlavePluginDriverBase
               std::decay_t<decltype(McRosMsgTranslator::mcan_decode_message_to_ros(
                 this->_interface.*(args)))>;
             auto subscription = this->create_subscription<RosMsgT>(
-              "/set/" + std::string(MsgT::k_group) + "/" + std::string(MsgT::k_name),
+              _module_params.module_ros_name + "/set/" + std::string(MsgT::k_group) +
+                "/" + std::string(MsgT::k_name),
               10,
               [this, args](const RosMsgT& ros_msg) {
                 if (!this->_is_active.load()) {
@@ -248,10 +251,10 @@ class McSlavePluginDriver : public McSlavePluginDriverBase
 
             float update_rate = _module_params.states_update_default_rate;
             if (maybe_override_rate != _module_params.states_custom_rates.end()) {
-              RCLCPP_INFO(this->get_logger(),
-                          "Using custom update rate for state %s: %f Hz",
-                          MsgT::k_name,
-                          maybe_override_rate->second);
+              RCLCPP_DEBUG(this->get_logger(),
+                           "Using custom update rate for state %s: %f Hz",
+                           MsgT::k_name,
+                           maybe_override_rate->second);
               update_rate = maybe_override_rate->second;
             }
             _timers.emplace(idx, TimingObject(update_rate));

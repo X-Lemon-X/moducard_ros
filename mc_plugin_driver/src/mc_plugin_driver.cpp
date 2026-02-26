@@ -532,7 +532,7 @@ McPLuginDriver::enter_configuration_mode()
   mcan::mcan_base_module_dummy::configs::EnterConfigurationMode config_msg;
   config_msg.value = 1;
   ARI_RETURN_ON_ERROR(
-    mcan_pack_send_msg(*_can_interface_primary, config_msg, MASTER_DRIVER_NODE_ID));
+    mcan_request_msg(*_can_interface_primary, config_msg, MASTER_DRIVER_NODE_ID));
   std::this_thread::sleep_for(750ms);
   // wait for devices to enter config mode
   switch_to_state(McPLuginDriverStates::DISCOVER_DEVICES);
