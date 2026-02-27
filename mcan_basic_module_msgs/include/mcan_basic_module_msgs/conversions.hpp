@@ -116,6 +116,20 @@ struct Conversions {
     return msg;
   }
 
+
+  template<float Scale>
+  static inline double
+  mcan_decode_type_to_ros(const FloatInt16_t<Scale>& val)
+  {
+    return (double)val;
+  }
+
+  static inline double
+  mcan_encode_ros_to_type(const double& val)
+  {
+    return (double)val;
+  }
+                         
   // ========== Custom Type Conversions ==========
 
   /**

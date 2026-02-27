@@ -1,0 +1,5 @@
+<library path="mcan_base_module_dummy_plugin">
+  <class name="mcan_base_module_dummy_msgs" type="mcan::mcan_base_module_dummy_plugin" base_class_type="mcan::McPluginExporterBase">
+    <description>Plugin for mcan_base_module_dummy.Base module required for all modules</description>
+  </class>
+</library>
