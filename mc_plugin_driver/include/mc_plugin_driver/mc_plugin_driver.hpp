@@ -126,6 +126,8 @@ class McPLuginDriver : public rclcpp::Node
   bool execute_state();
   void switch_to_state(McPLuginDriverStates next_state);
 
+  Status send_request_to_enter_config_mode();
+
   Status load_config(const std::string& config_file);
 
   Status load_available_plugins();

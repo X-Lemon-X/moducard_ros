@@ -258,6 +258,7 @@ McPLuginDriver::McPLuginDriver()
 
 McPLuginDriver::~McPLuginDriver()
 {
+  send_request_to_enter_config_mode();
   _run_main_loop.store(false);
   if (_main_loop_thread.joinable()) {
     _main_loop_thread.join();
@@ -526,13 +527,18 @@ McPLuginDriver::enter_uninitialized_state()
 }
 
 Status
+McPLuginDriver::send_request_to_enter_config_mode()
+{
+  mcan::mcan_base_module_dummy::configs::EnterConfigurationMode config_msg;
+  config_msg.value = 1;
+  return mcan_request_msg(*_can_interface_primary, config_msg, MASTER_DRIVER_NODE_ID);
+}
+
+Status
 McPLuginDriver::enter_configuration_mode()
 {
   RCLCPP_INFO(this->get_logger(), "Entering configuration mode");
-  mcan::mcan_base_module_dummy::configs::EnterConfigurationMode config_msg;
-  config_msg.value = 1;
-  ARI_RETURN_ON_ERROR(
-    mcan_request_msg(*_can_interface_primary, config_msg, MASTER_DRIVER_NODE_ID));
+  send_request_to_enter_config_mode();
   std::this_thread::sleep_for(750ms);
   // wait for devices to enter config mode
   switch_to_state(McPLuginDriverStates::DISCOVER_DEVICES);
@@ -637,7 +643,8 @@ McPLuginDriver::load_plugins_state()
     if (!maybe_device->get()->is_device_supported()) {
       return Status::Invalid(
         "Device with unique ID: " + std::to_string(modules.second.unique_id) +
-        " is not supported by any loaded plugin");
+        " is not supported by any loaded plugin. The Device requires plugin with PID:" +
+        std::to_string(maybe_device->get()->get_plugin_identifier()));
     }
 
     auto& device = *maybe_device;
@@ -654,6 +661,16 @@ McPLuginDriver::load_plugins_state()
     ARI_RETURN_ON_ERROR(driver->request_new_node_id(
       driver->get_driver()->driver_get_module_params().node_id));
   }
+  // we will give more less all nodes a bit of time to change to Normal operational mode
+  // WHY because with linux can socket to handle registering multiple callbacks and to add
+  // filter to CAN at driver level we have to disable the can socket temprarly and then
+  // re-enable it after we register th ecallback unfortunately this takes few milisecodn
+  // adn when we register 40 callbacks fro each module this adds up and can cause some
+  // messages to be lost if they are sent during the time we are registering callbacks, so
+  // we will just wait for a moment after registering all callbacks to give time for all
+  // devices to switch to normal mode and start sending messages before we start the
+  // control loop and expect to receive messages from the devices.
+  std::this_thread::sleep_for(2000ms);
   switch_to_state(McPLuginDriverStates::INIT_MODULES);
   return Status::OK();
 }

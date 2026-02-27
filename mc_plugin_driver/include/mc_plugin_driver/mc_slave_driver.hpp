@@ -275,6 +275,7 @@ class McSlavePluginDriver : public McSlavePluginDriverBase
     }
 
     _is_active.store(true);
+    _can_interface_primary->close_can();
     std::apply(
       [&](auto&&... args) {
         (
@@ -292,6 +293,7 @@ class McSlavePluginDriver : public McSlavePluginDriverBase
       },
       _interface.get_read_variables());
 
+    _can_interface_primary->open_can();
     driver_read_commands();
     driver_read_states();
     driver_read_configs();
@@ -310,6 +312,7 @@ class McSlavePluginDriver : public McSlavePluginDriverBase
       return Status::OK("Driver is already inactive");
     }
     _is_active.store(false);
+    _can_interface_primary->close_can();
     std::apply(
       [&](auto&&... args) {
         (
@@ -321,6 +324,7 @@ class McSlavePluginDriver : public McSlavePluginDriverBase
           ...);
       },
       _interface.get_read_variables());
+    _can_interface_primary->open_can();
     _driver_state = McSlavePluginDriverState::INITIALIZED;
     return Status::OK();
   };
