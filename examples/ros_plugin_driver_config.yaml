@@ -1,0 +1,50 @@
+#
+# Required element of the config file are  with * before the comment
+#
+
+
+# * Frequency at which states will be update on default.
+# this value is inherited for each value unless overridden manually individually or per module.
+states_update_default_rate: 20
+
+# * Name of the primary can interface
+can_primary_interface: vcan0
+
+# * Name of the secondary can interface
+can_secondary_interface: vcan1
+
+# * Base ROS frame id, inherited by the modules unless specified otherwise.
+frame_id: "euro_rack"
+
+# * List of plugins required for the system to work
+drivers:
+  - motor_hat_msgs
+  - other_plugin
+
+
+# * List of modules that should be configured for the system
+modules:
+  # * Name of the module that will be visible as in the system
+  # so for example topics and services will start with this name
+  motor_front_left:
+    # Plugin which should be used as a driver for the module, if not provided the plugin will be selected automatically if available 
+    driver: motor_hat_v3
+    # ROS frame_id. if not specified the global one will be used. 
+    frame_id: "motor_front_left"
+
+    ## * Unique ID of the board connected to the system, this can be obtained by scanning the system.
+    unique_id: 470
+    
+    # override for the module the global state update rate
+    states_update_default_rate: 10
+
+    # overrides rates for each state on the module individually, only listed states will be affected
+    states_custom_rates:
+      # name of the state and frequency at which it will be updated
+      current_position: 15
+      get_imu: 10
+
+  # * other module with minimal config
+  motor_front_right:
+    # * only the ID is required
+    unique_id: 670

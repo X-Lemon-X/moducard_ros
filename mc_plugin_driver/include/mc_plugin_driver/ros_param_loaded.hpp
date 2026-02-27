@@ -8,6 +8,7 @@
 #include <iostream>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include <yaml-cpp/yaml.h>
 
@@ -74,14 +75,6 @@ class McDriverParamsLoader
 
           const YAML::Node& module_data = module_entry.second;
 
-          // Load driver (maps to module_name)
-          if (module_data["driver"]) {
-            params.module_name = module_data["driver"].as<std::string>();
-          } else {
-            return Status::KeyError("No 'driver' specified for module " +
-                                    params.module_ros_name);
-          }
-
           if (module_data["frame_id"]) {
             params.frame_id = module_data["frame_id"].as<std::string>();
           } else {
@@ -100,7 +93,7 @@ class McDriverParamsLoader
           // Load node_id
           if (module_data["node_id"]) {
             auto id = module_data["node_id"].as<uint8_t>();
-            if (id < 2 || id > 255) {
+            if (id < 2) {
               return Status::Invalid(
                 "Module '" + params.module_ros_name +
                 "' has 'node_id' that is out of valid range (2-255)");
@@ -156,21 +149,24 @@ class McDriverParamsLoader
       }
 
       if (load_drivers) {
+        std::unordered_set<std::string> seen_drivers;
         for (const auto& driver_entry : config["drivers"]) {
           DriverParams params;
-          params.name = driver_entry.first.as<std::string>();
 
-          const YAML::Node& driver_data = driver_entry.second;
+          // driver_entry is now a simple string value (the ros_package name)
+          std::string ros_package = driver_entry.as<std::string>();
 
-          if (driver_data["ros_package"]) {
-            params.ros_package = driver_data["ros_package"].as<std::string>();
-          } else {
-            return Status::KeyError("No 'ros_package' specified for driver " +
-                                    params.name);
+          // Check for duplicates
+          if (seen_drivers.find(ros_package) != seen_drivers.end()) {
+            return Status::Invalid("Duplicate driver ros_package '" + ros_package +
+                                   "' found in configuration");
           }
+          seen_drivers.insert(ros_package);
+
+          params.ros_package = ros_package;
 
           // Store the driver params using driver name as key
-          _driver_params[params.name] = params;
+          _driver_params[params.ros_package] = params;
         }
       }
 

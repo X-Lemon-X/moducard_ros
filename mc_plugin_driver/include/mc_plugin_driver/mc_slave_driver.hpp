@@ -81,6 +81,8 @@ class McSlavePluginDriverBase : public rclcpp::Node
 
   HARDWARE_PUBLIC virtual Status driver_read_configs() = 0;
 
+  HARDWARE_PUBLIC virtual std::string driver_get_name() = 0;
+
   HARDWARE_PUBLIC void driver_set_node_id(uint8_t node_id)
   {
     _module_params.node_id = node_id;
@@ -133,9 +135,9 @@ class McSlavePluginDriver : public McSlavePluginDriverBase
       return Status::Invalid("Can secondary interface is null");
     }
 
-    if (module_params.module_name.empty()) {
-      return Status::Invalid("Module name is empty");
-    }
+    // if (module_params.module_name.empty()) {
+    //   return Status::Invalid("Module name is empty");
+    // }
 
     if (module_params.module_ros_name.empty()) {
       return Status::Invalid("Module ROS name is empty");
@@ -418,6 +420,11 @@ class McSlavePluginDriver : public McSlavePluginDriverBase
 
     return Status::OK();
   };
+
+  HARDWARE_PUBLIC virtual std::string driver_get_name() override
+  {
+    return std::string(_hardware.k_name);
+  }
 
  private:
   McSlavePluginDriver(rclcpp::Node& node,

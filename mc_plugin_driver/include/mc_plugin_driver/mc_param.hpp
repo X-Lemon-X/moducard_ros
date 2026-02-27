@@ -13,7 +13,7 @@ namespace mcan {
 struct ModuleParams
 {
   std::string module_ros_name;
-  std::string module_name;
+  // std::string module_name;
   std::string frame_id;
   uint32_t unique_id;
   uint8_t node_id;
@@ -26,7 +26,7 @@ struct ModuleParams
   {
     std::string result = "ModuleParams:\n";
     result += "  module_ros_name: " + module_ros_name + "\n";
-    result += "  module_name: " + module_name + "\n";
+    // result += "  module_name: " + module_name + "\n";
     result += "  frame_id: " + frame_id + "\n";
     result += "  unicie_id: " + std::to_string(unique_id) + "\n";
     result += "  node_id: " + std::to_string(node_id) + "\n";
@@ -52,7 +52,7 @@ struct ModuleParams
 
 struct DriverParams
 {
-  std::string name;
+  // std::string name;
   std::string ros_package;
 };
 

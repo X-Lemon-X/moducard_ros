@@ -277,7 +277,7 @@ McPLuginDriver::main_loop()
   double update_rate = _param_loader.get_max_update_rate() * 5.0f;
   std::chrono::nanoseconds update_period_ns(static_cast<int64_t>(1e9 / update_rate));
   RCLCPP_INFO(this->get_logger(),
-              "Entering main loop with update rate: %f Hz, %i [ns]",
+              "Entering main loop with update rate: %f Hz, %li [ns]",
               update_rate,
               update_period_ns.count());
 
@@ -424,14 +424,22 @@ McPLuginDriver::load_config(const std::string& config_file)
 Status
 McPLuginDriver::load_available_plugins()
 {
-  for (auto& [plugin_name, driver_params] : _param_loader.get_driver_params()) {
-    auto plugin_res = _plugin_loader.createSharedInstance(driver_params.ros_package);
-    if (!plugin_res) {
-      return Status::Invalid("Failed to load plugin creator for driver " +
-                             driver_params.name);
-    }
-    _loaded_plugins[plugin_res->get_plugin_unique_id()] = std::move(plugin_res);
+  std::unordered_map<std::string, uint64_t> plugins;
+  for (auto& plugin_name : _plugin_loader.getDeclaredClasses()) {
+    auto pl = _plugin_loader.createSharedInstance(plugin_name);
+    auto id = pl->get_plugin_unique_id();
+    _loaded_plugins[id] = std::move(pl);
+    plugins[plugin_name] = id;
   }
+
+  for (auto& [plugin_name, driver_params] : _param_loader.get_driver_params()) {
+    auto maybe_pluging = plugins.find(plugin_name);
+    if (maybe_pluging == plugins.end()) {
+      return Status::Invalid("Failed to load plugin creator for driver " +
+                             driver_params.ros_package);
+    }
+  }
+
   return Status::OK();
 }
 
@@ -464,7 +472,7 @@ McPLuginDriver::callback_discover_response(CanBase& can,
   }
 
   RCLCPP_INFO(this->get_logger(),
-              "\033[36mNew device discovered ID: 0x%08x PID: 0x%08lx\033[0m",
+              "\033[36m - new device discovered ID: 0x%08x PID: 0x%08lx\033[0m",
               unique_id,
               response_buf.value);
 
@@ -584,7 +592,7 @@ McPLuginDriver::discover_devices()
   std::lock_guard<std::mutex> lock(_mutex_device_updates);
   for (const auto& device : _connected_devices) {
     RCLCPP_INFO(this->get_logger(),
-                "Discovered device - Unique ID: 0x%08x, Plugin Unique ID: 0x%08lx",
+                " - device ID: 0x%08x, PID: 0x%08lx",
                 device->get_unique_id(),
                 device->get_plugin_identifier());
   }
@@ -601,22 +609,30 @@ McPLuginDriver::discover_devices()
 Status
 McPLuginDriver::check_compatibility()
 {
-  RCLCPP_INFO(this->get_logger(), "Checking compatibility");
+  RCLCPP_INFO(this->get_logger(), "Checking compatibility of devices.");
   std::lock_guard<std::mutex> lock(_mutex_device_updates);
   bool all_compatible = true;
   for (auto& device : _connected_devices) {
     auto maybe_plugin = _loaded_plugins.find(device->get_plugin_identifier());
     if (maybe_plugin == _loaded_plugins.end()) {
-      RCLCPP_ERROR(
+      RCLCPP_WARN(
         this->get_logger(),
-        "No plugin found for device ID: %x. This device requires plugin with PID: %x",
+        "\033[33mNo plugin found for device ID: 0x%08x. This device requires plugin "
+        "with PID: 0x%08lx\033[0m",
         device->get_unique_id(),
         device->get_plugin_identifier());
-      all_compatible = false;
       continue;
     }
     device->set_plugin_driver(maybe_plugin->second);
   }
+  if (all_compatible) {
+    RCLCPP_INFO(this->get_logger(),
+                "\033[32mAll connected devices are compatible.\033[0m");
+  } else {
+    RCLCPP_WARN(this->get_logger(),
+                "\033[33mNot all connected device are compatible.\033[0m");
+  }
+
   switch_to_state(McPLuginDriverStates::LOAD_PLUGINS);
   return Status::OK();
 }
@@ -624,7 +640,7 @@ McPLuginDriver::check_compatibility()
 Status
 McPLuginDriver::load_plugins_state()
 {
-  RCLCPP_INFO(this->get_logger(), "Loading plugins and creating slave drivers");
+  RCLCPP_INFO(this->get_logger(), "Loading plugins and creating slave drivers.");
   for (auto& modules : _param_loader.get_module_params()) {
     auto maybe_device =
       std::find_if(_connected_devices.begin(),
@@ -654,8 +670,12 @@ McPLuginDriver::load_plugins_state()
 
   for (const auto& driver : _active_slave_drivers) {
     RCLCPP_INFO(this->get_logger(),
-                "Loaded plugin for device Name: %s ID: %x, Plugin Unique ID: %x",
+                "\033[34mLoaded plugin \"%s\" for module \"%s\" Node ID: %u ID: 0x%08x, "
+                "PID: 0x%08lx "
+                " \033[0m",
+                driver->get_driver()->driver_get_name().c_str(),
                 driver->get_driver()->driver_get_module_params().module_ros_name.c_str(),
+                driver->get_driver()->driver_get_module_params().node_id,
                 driver->get_unique_id(),
                 driver->get_plugin_identifier());
     ARI_RETURN_ON_ERROR(driver->request_new_node_id(
@@ -685,17 +705,18 @@ McPLuginDriver::init_modules()
     ARI_RETURN_ON_ERROR(driver->get_driver()->driver_on_init());
     ARI_RETURN_ON_ERROR(driver->get_driver()->driver_on_activate());
 
-    RCLCPP_INFO(this->get_logger(),
-                "Initialized module and ROS interfaces for Module: %s Name: %s ID: %x, "
-                "PID: %x, Hardware "
-                "Firmware rev: %u, Hardware rev: %u, Hardware timestamp: %u",
-                driver->get_driver()->driver_get_module_params().module_ros_name.c_str(),
-                driver->get_driver()->driver_get_module_params().module_name.c_str(),
-                driver->get_unique_id(),
-                driver->get_plugin_identifier(),
-                response.fw_revision,
-                response.hw_revision,
-                response.hw_time_stamp);
+    RCLCPP_INFO(
+      this->get_logger(),
+      "\033[32mStarted module and ROS interfaces for \"%s\" Node ID: %u  ID: 0x%08x, "
+      "PID: 0x%08lx, Hardware "
+      "FV:%u,HV:%u,HT:%u\033[0m",
+      driver->get_driver()->driver_get_module_params().module_ros_name.c_str(),
+      driver->get_driver()->driver_get_module_params().node_id,
+      driver->get_unique_id(),
+      driver->get_plugin_identifier(),
+      response.fw_revision,
+      response.hw_revision,
+      response.hw_time_stamp);
   }
   switch_to_state(McPLuginDriverStates::CONTROL_LOOP);
   return Status::OK();
