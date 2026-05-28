@@ -621,6 +621,7 @@ McPLuginDriver::check_compatibility()
         "with PID: 0x%08lx\033[0m",
         device->get_unique_id(),
         device->get_plugin_identifier());
+      all_compatible = false;
       continue;
     }
     device->set_plugin_driver(maybe_plugin->second);
